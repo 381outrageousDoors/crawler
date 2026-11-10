@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: crawler
+  jpa:
+    hibernate.ddl-auto: validate
+management.endpoints.web.exposure.include: health
+scanner.target-url: ${SCANNER_TARGET_URL:https://news.ycombinator.com/}
