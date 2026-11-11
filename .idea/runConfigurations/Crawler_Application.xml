@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Crawler Application" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="crawler" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.doors.crawler.CrawlerApplication" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

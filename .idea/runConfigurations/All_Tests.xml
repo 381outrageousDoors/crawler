@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="All Tests" type="JUnit" factoryName="JUnit">
+    <module name="crawler" />
+    <shortenClasspath name="ARGS_FILE" />
+    <option name="TEST_OBJECT" value="package" />
+    <option name="PACKAGE_NAME" value="com.doors.crawler" />
+    <envs>
+      <env name="DOCKER_HOST" value="unix:///run/user/1000/podman/podman.sock" />
+      <env name="TESTCONTAINERS_RYUK_DISABLED" value="true" />
+    </envs>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
