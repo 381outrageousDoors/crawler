@@ -3,7 +3,7 @@ CREATE TABLE story (
                          hn_rank       INTEGER,
                          title         TEXT NOT NULL,
                          points        INTEGER,
-                         commentCount  INTEGER,
+                         comment_count INTEGER,
                          first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                          last_seen_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );

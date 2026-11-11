@@ -4,4 +4,7 @@ spring:
   jpa:
     hibernate.ddl-auto: validate
 management.endpoints.web.exposure.include: health
-scanner.target-url: ${SCANNER_TARGET_URL:https://news.ycombinator.com/}
+scanner:
+  target-url: ${SCANNER_TARGET_URL:https://news.ycombinator.com/}
+  min-interval-seconds: 30
+  max-interval-seconds: 900
