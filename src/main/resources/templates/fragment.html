@@ -1,0 +1,9 @@
+<!-- fragments.html -->
+<th:block th:fragment="stories">
+  <tr th:each="s : ${stories}">
+    <td th:text="${s.rank}"></td>
+    <td th:text="${s.title}"></td>
+    <td th:text="${s.points}"></td>
+    <td th:text="${s.commentCount}"></td>
+  </tr>
+</th:block>
