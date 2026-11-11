@@ -54,6 +54,8 @@ class StoryControllerTest {
         Document page = Jsoup.parse(html);
         assertThat(page.select("tbody#stories tr")).hasSize(2);
         assertThat(page.text()).contains("Top Story", "100");
+        // without htmx loaded the scan button silently degrades to a native GET /
+        assertThat(page.select("script[src*=htmx]")).isNotEmpty();
     }
 
     @Test
