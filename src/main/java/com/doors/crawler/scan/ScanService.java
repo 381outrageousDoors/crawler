@@ -38,6 +38,11 @@ public class ScanService {
         this.clock = clock;
     }
 
+    /** Last completed scan, for the page status line; null when never scanned. */
+    public Instant lastScanAt() {
+        return state.findById(1).map(ScanState::getLastScanAt).orElse(null);
+    }
+
     /** Called on user click: debounced scan, then restart the backoff window. */
     @Transactional
     public void requestScan() {

@@ -18,6 +18,7 @@ public class Story {
     String title;
     Integer points;
     Integer commentCount;
+    Integer wordCount;
     Instant firstSeenAt;
     Instant lastSeenAt;
 }

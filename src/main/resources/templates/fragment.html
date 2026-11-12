@@ -1,9 +1,45 @@
-<!-- fragments.html -->
-<th:block th:fragment="stories">
-  <tr th:each="s : ${stories}">
-    <td th:text="${s.rank}"></td>
-    <td th:text="${s.title}"></td>
-    <td th:text="${s.points}"></td>
-    <td th:text="${s.commentCount}"></td>
-  </tr>
-</th:block>
+<!-- view: whole htmx swap unit — filter form + status line + table -->
+<div th:fragment="view" id="story-view" th:hx-get="${storiesUrl}"
+     hx-trigger="every 30s" hx-target="this" hx-swap="outerHTML">
+  <form id="filters" hx-get="/stories" hx-target="#story-view" hx-swap="outerHTML"
+        hx-trigger="change, submit">
+    <select name="field">
+      <option value="none" th:selected="${field == 'none'}">— no filter —</option>
+      <option value="word" th:selected="${field == 'word'}">words in title</option>
+      <option value="points" th:selected="${field == 'points'}">points</option>
+      <option value="comments" th:selected="${field == 'comments'}">comment_count</option>
+    </select>
+    <select name="op">
+      <option value="gt" th:selected="${op == 'gt'}">&gt;</option>
+      <option value="gte" th:selected="${op == 'gte'}">&gt;=</option>
+      <option value="lt" th:selected="${op == 'lt'}">&lt;</option>
+      <option value="lte" th:selected="${op == 'lte'}">&lt;=</option>
+      <option value="eq" th:selected="${op == 'eq'}">=</option>
+    </select>
+    <input type="number" name="value" th:value="${value}">
+    <select name="sort">
+      <option value="rank" th:selected="${sort == 'rank'}">rank</option>
+      <option value="title" th:selected="${sort == 'title'}">title</option>
+      <option value="points" th:selected="${sort == 'points'}">points</option>
+      <option value="comments" th:selected="${sort == 'comments'}">comment_count</option>
+    </select>
+    <select name="dir">
+      <option value="asc" th:selected="${dir == 'asc'}">asc</option>
+      <option value="desc" th:selected="${dir == 'desc'}">desc</option>
+    </select>
+    <button type="submit" name="preset" value="ask1">Ask 1</button>
+    <button type="submit" name="preset" value="ask2">Ask 2</button>
+  </form>
+  <div id="status" th:text="${statusText}"></div>
+  <table>
+    <thead><tr><th>#</th><th>Title</th><th>Points</th><th>Comments</th></tr></thead>
+    <tbody>
+      <tr th:each="s : ${stories}">
+        <td th:text="${s.rank}"></td>
+        <td th:text="${s.title}"></td>
+        <td th:text="${s.points}"></td>
+        <td th:text="${s.commentCount}"></td>
+      </tr>
+    </tbody>
+  </table>
+</div>

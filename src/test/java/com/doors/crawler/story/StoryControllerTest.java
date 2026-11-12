@@ -17,12 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -45,37 +43,66 @@ class StoryControllerTest {
         stories.upsert(2L, 2, "Second Story", 50, 7, T0);
     }
 
-    @Test
-    void indexRendersStoredStoriesIntoTable() throws Exception {
-        String html = mvc.perform(get("/"))
+    // extra fixtures for filter/sort tests: titles of 7, 6 and 5 words
+    private void seedFilterFixtures() {
+        stories.upsert(3L, 3, "Ask HN: what is your favorite editor", 30, 90, T0);
+        stories.upsert(4L, 4, "Ask HN — why do people code", 20, 55, T0);
+        stories.upsert(5L, 5, "Five words in this title", 10, 3, T0);
+    }
+
+    private Document fetch(String uri) throws Exception {
+        String html = mvc.perform(get(uri))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
+        return Jsoup.parse(html);
+    }
 
-        Document page = Jsoup.parse(html);
-        assertThat(page.select("tbody#stories tr")).hasSize(2);
+    private static java.util.List<String> titles(Document view) {
+        return view.select("#story-view tbody tr").asList().stream()
+                .map(tr -> tr.child(1).text())
+                .toList();
+    }
+
+    @Test
+    void indexRendersStoredStoriesIntoTable() throws Exception {
+        when(scanService.lastScanAt()).thenReturn(T0);
+
+        Document page = fetch("/");
+        assertThat(page.select("#story-view tbody tr")).hasSize(2);
         assertThat(page.text()).contains("Top Story", "100");
+        assertThat(page.text()).contains("Last scanned: 2026-11-11 10:00:00 UTC");
         // without htmx loaded the scan button silently degrades to a native GET /
         assertThat(page.select("script[src*=htmx]")).isNotEmpty();
     }
 
     @Test
-    void storiesEndpointReturnsBareFragmentRows() throws Exception {
-        String html = mvc.perform(get("/stories"))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+    void storiesEndpointReturnsViewWithControls() throws Exception {
+        Document view = fetch("/stories");
 
-        // htmx swaps these into <tbody id="stories">, so parse them in that context
-        assertThat(Jsoup.parse("<table><tbody>" + html + "</tbody></table>").select("tr")).hasSize(2);
-        assertThat(html).doesNotContain("<html");
+        assertThat(view.selectFirst("#story-view")).isNotNull();
+        assertThat(view.select("#story-view tbody tr")).hasSize(2);
+        assertThat(view.selectFirst("#story-view").attr("hx-get")).isEqualTo("/stories");
+        assertThat(view.select("select[name=field]")).isNotEmpty();
+        assertThat(view.select("select[name=op]")).isNotEmpty();
+        assertThat(view.select("input[name=value][value=5]")).isNotEmpty();
+        assertThat(view.select("select[name=sort]")).isNotEmpty();
+        assertThat(view.select("select[name=dir]")).isNotEmpty();
+        assertThat(view.select("button[name=preset][value=ask1]")).isNotEmpty();
+        assertThat(view.select("button[name=preset][value=ask2]")).isNotEmpty();
     }
 
     @Test
     void scanTriggersScanAndReturnsFreshRows() throws Exception {
+        when(scanService.lastScanAt()).thenReturn(T0);
+
         String html = mvc.perform(post("/scan"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        assertThat(Jsoup.parse("<table><tbody>" + html + "</tbody></table>").select("tr")).hasSize(2);
+        Document view = Jsoup.parse(html);
+        assertThat(view.select("#story-view tbody tr")).hasSize(2);
+        assertThat(view.selectFirst("#story-view").attr("hx-get")).isEqualTo("/stories");
+        assertThat(view.text()).contains("Last scanned: 2026-11-11 10:00:00 UTC");
         verify(scanService).requestScan();
     }
 
@@ -83,8 +110,63 @@ class StoryControllerTest {
     void emptyFrontPageRendersNoRows() throws Exception {
         stories.deleteAll();
 
-        mvc.perform(get("/stories"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(not(containsString("<tr"))));
+        Document view = fetch("/stories");
+        assertThat(view.select("#story-view tbody tr")).isEmpty();
+    }
+
+    @Test
+    void presetAskOneFiltersAndFillsForm() throws Exception {
+        seedFilterFixtures();
+
+        Document view = fetch("/stories?preset=ask1");
+        assertThat(titles(view))
+                .containsExactly("Ask HN: what is your favorite editor", "Ask HN — why do people code");
+        assertThat(view.selectFirst("#story-view").attr("hx-get"))
+                .isEqualTo("/stories?field=word&op=gt&value=5&sort=comments&dir=desc");
+        assertThat(view.select("select[name=field] option[value=word][selected]")).isNotEmpty();
+        assertThat(view.select("select[name=op] option[value=gt][selected]")).isNotEmpty();
+        assertThat(view.select("select[name=sort] option[value=comments][selected]")).isNotEmpty();
+        assertThat(view.select("select[name=dir] option[value=desc][selected]")).isNotEmpty();
+        assertThat(view.selectFirst("input[name=value]").attr("value")).isEqualTo("5");
+        assertThat(view.select("#status").text())
+                .endsWith("Filter: word_count > 5 · Sorted by comment_count desc");
+    }
+
+    @Test
+    void presetAskTwoFiltersByPoints() throws Exception {
+        seedFilterFixtures();
+
+        Document view = fetch("/stories?preset=ask2");
+        assertThat(titles(view))
+                .containsExactly("Top Story", "Second Story", "Five words in this title");
+        assertThat(view.selectFirst("#story-view").attr("hx-get"))
+                .contains("field=word&op=lte&value=5&sort=points&dir=desc");
+    }
+
+    @Test
+    void explicitParamsFilterAndSort() throws Exception {
+        seedFilterFixtures();
+
+        Document view = fetch("/stories?field=points&op=gt&value=60&sort=title&dir=asc");
+        assertThat(titles(view)).containsExactly("Top Story");
+        assertThat(view.selectFirst("#story-view").attr("hx-get"))
+                .isEqualTo("/stories?field=points&op=gt&value=60&sort=title&dir=asc");
+    }
+
+    @Test
+    void invalidValueFallsBackToFive() throws Exception {
+        seedFilterFixtures();
+
+        Document view = fetch("/stories?field=points&op=eq&value=abc");
+        assertThat(view.select("#story-view tbody tr")).isEmpty();
+        assertThat(view.selectFirst("input[name=value]").attr("value")).isEqualTo("5");
+    }
+
+    @Test
+    void statusLineDescribesActiveView() throws Exception {
+        // unstubbed mock: lastScanAt() is null
+        assertThat(fetch("/stories").select("#status").text()).isEqualTo("Not scanned yet");
+        assertThat(fetch("/stories?preset=ask2").select("#status").text())
+                .isEqualTo("Not scanned yet · Filter: word_count <= 5 · Sorted by points desc");
     }
 }

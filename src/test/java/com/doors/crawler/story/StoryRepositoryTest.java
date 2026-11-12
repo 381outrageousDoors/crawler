@@ -36,6 +36,13 @@ class StoryRepositoryTest {
     }
 
     @Test
+    void upsertComputesWordCount() {
+        stories.upsert(9L, 1, "Ask HN — why do people code", 1, 1, T0);
+
+        assertThat(stories.findById(9L).orElseThrow().getWordCount()).isEqualTo(6);
+    }
+
+    @Test
     void deleteNotSeenSinceKeepsRowsSeenExactlyAtTheBoundary() {
         stories.upsert(201L, 1, "Stale", 1, 1, T0);
         stories.upsert(202L, 2, "Fresh", 2, 2, T1);
