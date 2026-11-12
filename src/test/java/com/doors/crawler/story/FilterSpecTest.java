@@ -94,6 +94,18 @@ class FilterSpecTest {
     }
 
     @Test
+    void presetClearResetsToDefault() {
+        FilterSpec spec = FilterSpec.fromParams("points", "gt", "9", "title", "desc", "clear");
+        assertThat(spec.field()).isEqualTo(FilterField.NONE);
+        assertThat(spec.op()).isEqualTo(FilterOp.GT);
+        assertThat(spec.value()).isEqualTo(5);
+        assertThat(spec.sort()).isEqualTo(SortField.RANK);
+        assertThat(spec.desc()).isFalse();
+        assertThat(spec.pollUrl()).isEqualTo("/stories");
+        assertThat(spec.describe()).isNull();
+    }
+
+    @Test
     void applyWordFilterKeepsOnlyLongTitles() {
         Story shortOne = story(1, 1, "Top Story", 100, 42, 2);
         Story edge = story(2, 2, "Five words in this title", 10, 3, 5);

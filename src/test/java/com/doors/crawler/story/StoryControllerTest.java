@@ -82,6 +82,9 @@ class StoryControllerTest {
         assertThat(page.text()).contains("Last scanned: 2026-11-11 10:00:00 UTC");
         // without htmx loaded the scan button silently degrades to a native GET /
         assertThat(page.select("script[src*=htmx]")).isNotEmpty();
+        // Ask presets sit next to Scan now and target the view directly
+        assertThat(page.select("button[hx-get*='preset=ask1']")).isNotEmpty();
+        assertThat(page.select("button[hx-get*='preset=ask2']")).isNotEmpty();
     }
 
     @Test
@@ -96,8 +99,9 @@ class StoryControllerTest {
         assertThat(view.select("input[name=value][value=5]")).isNotEmpty();
         assertThat(view.select("select[name=sort]")).isNotEmpty();
         assertThat(view.select("select[name=dir]")).isNotEmpty();
-        assertThat(view.select("button[name=preset][value=ask1]")).isNotEmpty();
-        assertThat(view.select("button[name=preset][value=ask2]")).isNotEmpty();
+        assertThat(view.select("button[name=preset][value=clear]")).isNotEmpty();
+        assertThat(view.select("#filters button[type=submit]:not([name])")).isNotEmpty();
+        assertThat(view.selectFirst("#filters").attr("hx-trigger")).isEqualTo("submit");
     }
 
     @Test
@@ -150,6 +154,16 @@ class StoryControllerTest {
                 .containsExactly("Top Story", "Second Story", "Five words in this title");
         assertThat(view.selectFirst("#story-view").attr("hx-get"))
                 .contains("field=word&op=lte&value=5&sort=points&dir=desc");
+    }
+
+    @Test
+    void clearPresetResetsView() throws Exception {
+        seedFilterFixtures();
+
+        Document view = fetch("/stories?preset=clear&field=points&op=gt&value=60");
+        assertThat(titles(view)).hasSize(5);
+        assertThat(view.selectFirst("#story-view").attr("hx-get")).isEqualTo("/stories");
+        assertThat(view.select("select[name=field] option[value=none][selected]")).isNotEmpty();
     }
 
     @Test

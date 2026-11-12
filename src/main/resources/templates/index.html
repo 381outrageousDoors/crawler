@@ -8,6 +8,8 @@
 <form hx-post="/scan" hx-target="#story-view" hx-swap="outerHTML" hx-disabled-elt="find button">
     <button type="submit">Scan now</button>
 </form>
+<button hx-get="/stories?preset=ask1" hx-target="#story-view" hx-swap="outerHTML">Ask 1</button>
+<button hx-get="/stories?preset=ask2" hx-target="#story-view" hx-swap="outerHTML">Ask 2</button>
 <div th:replace="~{fragment :: view}"/>
 </body>
 </html>

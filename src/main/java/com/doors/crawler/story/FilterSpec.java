@@ -14,6 +14,9 @@ public record FilterSpec(FilterField field, FilterOp op, int value, SortField so
         if ("ask2".equals(preset)) {
             return new FilterSpec(FilterField.WORD, FilterOp.LTE, 5, SortField.POINTS, true);
         }
+        if ("clear".equals(preset)) {
+            return new FilterSpec(FilterField.NONE, FilterOp.GT, 5, SortField.RANK, false);
+        }
         int v;
         try {
             v = Integer.parseInt(value);
