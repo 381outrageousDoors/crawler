@@ -198,6 +198,14 @@ class FilterSpecTest {
     }
 
     @Test
+    void describeCoversSortOnlyView() {
+        assertThat(FilterSpec.fromParams("none", "gt", "5", "title", "asc", null).describe())
+                .isEqualTo("Sorted by title asc");
+        assertThat(FilterSpec.fromParams("none", "gt", "5", "rank", "desc", null).describe())
+                .isEqualTo("Sorted by rank desc");
+    }
+
+    @Test
     void paramAccessorsAreLowercaseEnumNames() {
         FilterSpec ask1 = FilterSpec.fromParams(null, null, null, null, null, "ask1");
         assertThat(ask1.fieldParam()).isEqualTo("word");

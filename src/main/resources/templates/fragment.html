@@ -1,8 +1,10 @@
 <!-- view: whole htmx swap unit — filter form + status line + table -->
 <div th:fragment="view" id="story-view" th:hx-get="${storiesUrl}"
-     hx-trigger="every 30s" hx-target="this" hx-swap="outerHTML">
+     hx-trigger="every 30s" hx-target="this" hx-swap="outerHTML"
+     hx-sync="this:drop"
+     hx-on::response-error="document.getElementById('status').textContent = 'Update failed — retrying automatically'">
   <form id="filters" hx-get="/stories" hx-target="#story-view" hx-swap="outerHTML"
-        hx-trigger="change, submit">
+        hx-trigger="change, submit" hx-sync="#story-view replace">
     <select name="field">
       <option value="none" th:selected="${field == 'none'}">— no filter —</option>
       <option value="word" th:selected="${field == 'word'}">words in title</option>

@@ -51,13 +51,16 @@ public record FilterSpec(FilterField field, FilterOp op, int value, SortField so
         return desc ? c.reversed() : c;
     }
 
-    /** Human-readable summary of the active view; null when no filter is active. */
+    /** Human-readable summary of the active view; null when the view is the default. */
     public String describe() {
+        String sortPart = "Sorted by " + sort.label() + " " + (desc ? "desc" : "asc");
         if (field == FilterField.NONE) {
-            return null;
+            if (sort == SortField.RANK && !desc) {
+                return null;
+            }
+            return sortPart;
         }
-        return "Filter: " + field.label() + " " + op.symbol() + " " + value
-                + " · Sorted by " + sort.label() + " " + (desc ? "desc" : "asc");
+        return "Filter: " + field.label() + " " + op.symbol() + " " + value + " · " + sortPart;
     }
 
     /** Poll URL carrying the current view so the 30 s poll keeps the filter alive. */
