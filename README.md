@@ -12,7 +12,7 @@ one-click presets.
 
 ## Features
 
-- Scheduled scans with exponential backoff; manual "Scan now" is debounced
+- Scheduled scans with exponential backoff; manual "Reset & Scan" is debounced
 - Filter by title word count, points, or comment count (`>`, `>=`, `<`, `<=`, `=`)
 - Sort by rank, title, points, or comment count, asc/desc
 - Presets: **Ask 1** (titles > 5 words, most-commented first),
@@ -27,7 +27,7 @@ one-click presets.
 - JDK 25 (the Maven wrapper is checked in)
 - podman or docker with a compose provider
 
-## Setup
+## Setup (local)
 
 1. Create a `.env` in the project root with the compose credentials:
 
@@ -57,9 +57,26 @@ one-click presets.
 | `GET /` | Full page: scan button, Ask presets, filter form, story table |
 | `GET /stories` | View fragment (form + status + table); params `field`, `op`, `value`, `sort`, `dir`, `preset` — invalid values fall back to defaults |
 | `POST /scan` | Debounced scan, then re-renders the view with default ordering |
+| `GET /actuator/health` | Liveness/readiness probe (used as Railway health check) |
 
 Configuration keys (`application.yaml`, env-overridable): `scanner.target-url`
 (`SCANNER_TARGET_URL`), `scanner.min-interval-seconds`, `scanner.max-interval-seconds`.
+
+## Deploy (Railway)
+
+The `Dockerfile` (multi-stage, JDK 25) is auto-detected by Railway. Add a
+PostgreSQL plugin to the project, then set these variables on the app service:
+
+| Variable | Value |
+| --- | --- |
+| `SPRING_DOCKER_COMPOSE_ENABLED` | `false` — no Docker daemon in prod, so Boot must not start `compose.yaml` |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}` |
+| `SPRING_DATASOURCE_USERNAME` | `${{Postgres.PGUSER}}` |
+| `SPRING_DATASOURCE_PASSWORD` | `${{Postgres.PGPASSWORD}}` |
+
+`PORT` is provided by Railway and consumed by `server.port`. Flyway migrates
+the empty database on first boot; the first scheduled scan populates stories.
+`compose.yaml` is local-dev only and unused in prod.
 
 ## Database
 
