@@ -78,6 +78,17 @@ PostgreSQL plugin to the project, then set these variables on the app service:
 the empty database on first boot; the first scheduled scan populates stories.
 `compose.yaml` is local-dev only and unused in prod.
 
+### CI/CD (GitHub Actions)
+
+`.github/workflows/ci-deploy.yml` runs `./mvnw test` on every PR and push
+(Testcontainers uses the runner's Docker), then deploys `main` to Railway with
+`railway up` only after tests pass. Requires, in repo settings: secrets
+`RAILWAY_TOKEN` (project token from Railway → Settings → Tokens) and
+`RAILWAY_PROJECT_ID`, plus repository variable `RAILWAY_SERVICE` (the app
+service's name). Set the Railway service's autodeploy to **Disabled** so
+pushes don't deploy twice. Dependabot (`.github/dependabot.yml`) opens weekly
+PRs for Maven and Actions updates; the test gate applies to those too.
+
 ## Database
 
 Flyway migrations in `src/main/resources/db/migration` (story, scan_state,
