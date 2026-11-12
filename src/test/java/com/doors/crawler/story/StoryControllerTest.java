@@ -2,6 +2,8 @@ package com.doors.crawler.story;
 
 import com.doors.crawler.TestcontainersConfiguration;
 import com.doors.crawler.scan.ScanService;
+import com.doors.crawler.usage.RequestLog;
+import com.doors.crawler.usage.RequestLogRepository;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,8 +33,15 @@ class StoryControllerTest {
 
     private static final Instant T0 = Instant.parse("2026-11-11T10:00:00Z");
 
+    private static final String FIREFOX_UA =
+            "Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0";
+    private static final String CHROME_UA =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                    + "Chrome/131.0.0.0 Safari/537.36";
+
     @Autowired MockMvc mvc;
     @Autowired StoryRepository stories;
+    @Autowired RequestLogRepository requests;
 
     // web layer only: scan behaviour itself is covered by ScanServiceTest
     @MockitoBean ScanService scanService;
@@ -168,5 +177,54 @@ class StoryControllerTest {
         assertThat(fetch("/stories").select("#status").text()).isEqualTo("Not scanned yet");
         assertThat(fetch("/stories?preset=ask2").select("#status").text())
                 .isEqualTo("Not scanned yet · Filter: word_count <= 5 · Sorted by points desc");
+        assertThat(fetch("/stories?sort=title&dir=desc").select("#status").text())
+                .isEqualTo("Not scanned yet · Sorted by title desc");
+    }
+
+    @Test
+    void indexRequestIsLogged() throws Exception {
+        mvc.perform(get("/").header("User-Agent", FIREFOX_UA))
+                .andExpect(status().isOk());
+
+        java.util.List<RequestLog> rows = requests.findAll();
+        assertThat(rows).hasSize(1);
+        RequestLog row = rows.get(0);
+        assertThat(row.getEndpoint()).isEqualTo("index");
+        assertThat(row.getBrowser()).isEqualTo("Firefox");
+        assertThat(row.getFilter()).isNull();
+        assertThat(row.getFilterField()).isEqualTo("none");
+        assertThat(row.getResultCount()).isEqualTo(2); // seedFrontPage seeds two stories
+    }
+
+    @Test
+    void storiesRequestIsLogged() throws Exception {
+        seedFilterFixtures();
+        mvc.perform(get("/stories?field=word&op=gt&value=6&sort=points&dir=desc")
+                        .header("User-Agent", CHROME_UA))
+                .andExpect(status().isOk());
+
+        java.util.List<RequestLog> rows = requests.findAll();
+        assertThat(rows).hasSize(1);
+        RequestLog row = rows.get(0);
+        assertThat(row.getEndpoint()).isEqualTo("stories");
+        assertThat(row.getBrowser()).isEqualTo("Chrome");
+        assertThat(row.getFilterField()).isEqualTo("word");
+        assertThat(row.getFilterOp()).isEqualTo("gt");
+        assertThat(row.getFilterValue()).isEqualTo(6);
+        assertThat(row.getSortField()).isEqualTo("points");
+        assertThat(row.isSortDesc()).isTrue();
+        assertThat(row.getResultCount()).isEqualTo(1);
+        assertThat(row.getFilter()).contains("word_count > 6");
+        assertThat(row.getDurationMs()).isNotNull().isGreaterThanOrEqualTo(0L);
+    }
+
+    @Test
+    void scanRequestIsLogged() throws Exception {
+        mvc.perform(post("/scan"))
+                .andExpect(status().isOk());
+
+        java.util.List<RequestLog> rows = requests.findAll();
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).getEndpoint()).isEqualTo("scan");
     }
 }

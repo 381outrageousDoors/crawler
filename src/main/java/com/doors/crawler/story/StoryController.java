@@ -1,15 +1,18 @@
 package com.doors.crawler.story;
 
 import com.doors.crawler.scan.ScanService;
+import com.doors.crawler.usage.UsageService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Controller
 public class StoryController {
@@ -19,23 +22,27 @@ public class StoryController {
 
     private final ScanService scanService;
     private final StoryRepository stories;
+    private final UsageService usage;
 
-    StoryController(ScanService scanService, StoryRepository stories) {
+    StoryController(ScanService scanService, StoryRepository stories, UsageService usage) {
         this.scanService = scanService;
         this.stories = stories;
+        this.usage = usage;
     }
 
     @GetMapping("/")
-    public String index(Model model) {
-        populate(FilterSpec.fromParams(null, null, null, null, null, null), model);
+    public String index(@RequestHeader(name = "User-Agent", required = false) String userAgent,
+                        Model model) {
+        populate(FilterSpec.fromParams(null, null, null, null, null, null), "index", null, userAgent, model);
         return "index";
     }
 
     /** htmx target: run a debounced scan, then swap in the fresh view (default ordering). */
     @PostMapping("/scan")
-    public String scan(Model model) {
+    public String scan(@RequestHeader(name = "User-Agent", required = false) String userAgent,
+                       Model model) {
         scanService.requestScan();
-        populate(FilterSpec.fromParams(null, null, null, null, null, null), model);
+        populate(FilterSpec.fromParams(null, null, null, null, null, null), "scan", null, userAgent, model);
         return "fragment :: view";
     }
 
@@ -48,13 +55,16 @@ public class StoryController {
             @RequestParam(name = "sort", defaultValue = "rank") String sort,
             @RequestParam(name = "dir", defaultValue = "asc") String dir,
             @RequestParam(name = "preset", required = false) String preset,
+            @RequestHeader(name = "User-Agent", required = false) String userAgent,
             Model model) {
-        populate(FilterSpec.fromParams(field, op, value, sort, dir, preset), model);
+        populate(FilterSpec.fromParams(field, op, value, sort, dir, preset), "stories", preset, userAgent, model);
         return "fragment :: view";
     }
 
-    private void populate(FilterSpec spec, Model model) {
-        model.addAttribute("stories", spec.apply(stories.findAll()));
+    private void populate(FilterSpec spec, String endpoint, String preset, String userAgent, Model model) {
+        long t0 = System.nanoTime();
+        List<Story> filtered = spec.apply(stories.findAll());
+        model.addAttribute("stories", filtered);
         model.addAttribute("field", spec.fieldParam());
         model.addAttribute("op", spec.opParam());
         model.addAttribute("value", spec.value());
@@ -62,6 +72,7 @@ public class StoryController {
         model.addAttribute("dir", spec.desc() ? "desc" : "asc");
         model.addAttribute("storiesUrl", spec.pollUrl());
         model.addAttribute("statusText", statusText(spec));
+        usage.record(endpoint, spec, preset, userAgent, filtered.size(), (System.nanoTime() - t0) / 1_000_000);
     }
 
     private String statusText(FilterSpec spec) {
