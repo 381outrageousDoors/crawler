@@ -2,16 +2,44 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>HN Front Page Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/app.css">
+    <script>
+        (function () {
+            var t = localStorage.getItem('theme');
+            var dark = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.classList.toggle('dark', dark);
+        })();
+    </script>
     <script src="/webjars/htmx.org/dist/htmx.min.js"></script>
 </head>
 <body>
-<div style="display:flex; gap:0.5rem; margin-bottom:0.5rem">
+<main class="wrap">
+<div class="actions">
 <form hx-post="/scan" hx-target="#story-view" hx-swap="outerHTML" hx-disabled-elt="find button">
     <button type="submit">Reset &amp; Scan</button>
 </form>
 <button hx-get="/stories?preset=ask1" hx-target="#story-view" hx-swap="outerHTML">Ask 1</button>
 <button hx-get="/stories?preset=ask2" hx-target="#story-view" hx-swap="outerHTML">Ask 2</button>
+<button id="theme-toggle" type="button">Dark mode</button>
 </div>
 <div th:replace="~{fragment :: view}"/>
+</main>
+<script>
+(function () {
+    var btn = document.getElementById('theme-toggle');
+    function sync() {
+        var dark = document.documentElement.classList.contains('dark');
+        btn.textContent = dark ? 'Light mode' : 'Dark mode';
+    }
+    btn.addEventListener('click', function () {
+        var dark = !document.documentElement.classList.contains('dark');
+        document.documentElement.classList.toggle('dark', dark);
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+        sync();
+    });
+    sync();
+})();
+</script>
 </body>
 </html>
