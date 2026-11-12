@@ -21,6 +21,7 @@
 </form>
 <button hx-get="/stories?preset=ask1" hx-target="#story-view" hx-swap="outerHTML">Ask 1</button>
 <button hx-get="/stories?preset=ask2" hx-target="#story-view" hx-swap="outerHTML">Ask 2</button>
+<a href="/requests">Request log</a>
 <button id="theme-toggle" type="button">Dark mode</button>
 </div>
 <div th:replace="~{fragment :: view}"/>

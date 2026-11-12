@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Request Log — HN Front Page Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/app.css">
+    <script>
+        (function () {
+            var t = localStorage.getItem('theme');
+            var dark = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.classList.toggle('dark', dark);
+        })();
+    </script>
+    <script src="/webjars/htmx.org/dist/htmx.min.js"></script>
+</head>
+<body>
+<main class="wrap">
+<div class="actions">
+<a href="/">Stories</a>
+<button id="theme-toggle" type="button">Dark mode</button>
+</div>
+<div th:fragment="view" id="request-view" hx-get="/requests/data"
+     hx-trigger="every 30s" hx-target="this" hx-swap="outerHTML">
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>Timestamp</th><th>Preset / Filter</th><th>Result count</th>
+      <th>Duration ms</th><th>Endpoint</th><th>Browser</th></tr></thead>
+    <tbody>
+      <tr th:each="r : ${rows}">
+        <td th:text="${r.time}"></td>
+        <td th:text="${r.presetOrFilter}"></td>
+        <td th:text="${r.resultCount}"></td>
+        <td th:text="${r.durationMs}"></td>
+        <td th:text="${r.endpoint}"></td>
+        <td th:text="${r.browser}"></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+</main>
+<script>
+(function () {
+    var btn = document.getElementById('theme-toggle');
+    function sync() {
+        var dark = document.documentElement.classList.contains('dark');
+        btn.textContent = dark ? 'Light mode' : 'Dark mode';
+    }
+    btn.addEventListener('click', function () {
+        var dark = !document.documentElement.classList.contains('dark');
+        document.documentElement.classList.toggle('dark', dark);
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+        sync();
+    });
+    sync();
+})();
+</script>
+</body>
+</html>
